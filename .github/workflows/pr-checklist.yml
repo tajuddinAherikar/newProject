@@ -1,0 +1,35 @@
+name: PR Checklist
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for PR checklist completion
+        id: checklist
+        run: |
+          PR_BODY=$(jq -r '.pull_request.body' "$GITHUB_EVENT_PATH")
+          MISSING_ITEMS=0
+          for ITEM in \
+            "I have read the Contributing Guidelines" \
+            "My code follows the style guidelines of this project" \
+            "I have performed a self-review of my own code" \
+            "I have commented my code, particularly in hard-to-understand areas" \
+            "I have made corresponding changes to the documentation" \
+            "My changes generate no new warnings" \
+            "I have added tests that prove my fix is effective or that my feature works" \
+            "New and existing unit tests pass locally with my changes" \
+            "Any dependent changes have been merged and published in downstream modules"
+          do
+            if ! echo "$PR_BODY" | grep -q "$ITEM"; then
+              echo "::error::Checklist item missing: $ITEM"
+              MISSING_ITEMS=$((MISSING_ITEMS+1))
+            fi
+          done
+          if [ $MISSING_ITEMS -gt 0 ]; then
+            exit 1
+          fi
